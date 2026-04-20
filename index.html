@@ -1,1030 +1,1011 @@
-
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PTS v3 - Sistema Integral de Permisos de Trabajo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --primary: #1a3a5c;
-    --primary-light: #e8f0f8;
-    --accent: #d4380d;
-    --success: #237804;
-    --warning: #d46b08;
-    --border: rgba(0,0,0,0.12);
-    --bg: #f5f5f0;
-    --card: #ffffff;
-    --text: #1a1a1a;
-    --muted: #666;
-    --font: 'IBM Plex Sans', sans-serif;
-    --mono: 'IBM Plex Mono', monospace;
-  }
-
-  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; }
-
-  .app-shell { display: flex; flex-direction: column; min-height: 100vh; }
-
-  .topbar {
-    background: var(--primary);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    height: 52px;
-    position: sticky; top: 0; z-index: 100;
-  }
-  .topbar-brand { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
-  .topbar-brand span { font-size: 10px; font-family: var(--mono); background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 3px; }
-  .topbar-nav { display: flex; gap: 4px; }
-  .nav-btn {
-    background: transparent; border: none; color: rgba(255,255,255,0.7);
-    padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;
-    font-family: var(--font); font-weight: 500; letter-spacing: 0.03em;
-    transition: all 0.15s;
-  }
-  .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-  .nav-btn.active { background: rgba(255,255,255,0.2); color: white; }
-
-  .view { display: none; padding: 24px; max-width: 900px; margin: 0 auto; width: 100%; }
-  .view.active { display: block; }
-
-  .permit-header {
-    background: var(--primary);
-    color: white;
-    border-radius: 8px 8px 0 0;
-    padding: 20px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-  .permit-header-left h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-  .permit-header-left p { font-size: 11px; opacity: 0.75; font-family: var(--mono); }
-  .permit-header-right { text-align: right; font-family: var(--mono); font-size: 11px; opacity: 0.8; }
-  .pts-badge {
-    background: rgba(255,255,255,0.2);
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 4px;
-    padding: 4px 10px;
-    font-size: 11px;
-    margin-bottom: 6px;
-    font-weight: 500;
-  }
-
-  .permit-alert {
-    background: #fff3cd;
-    border-left: 4px solid var(--warning);
-    padding: 8px 16px;
-    font-size: 12px;
-    color: #7c4700;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .permit-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-top: none;
-  }
-  .permit-card:last-child { border-radius: 0 0 8px 8px; }
-
-  .section-header {
-    background: #1a3a5c;
-    color: white;
-    padding: 7px 16px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .field-row {
-    display: grid;
-    gap: 12px;
-    padding: 12px 16px;
-    border-bottom: 0.5px solid var(--border);
-  }
-  .field-row.cols-2 { grid-template-columns: 1fr 1fr; }
-  .field-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-
-  .field-group { display: flex; flex-direction: column; gap: 4px; }
-  .field-group label { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-  .field-group input, .field-group textarea, .field-group select {
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 7px 10px;
-    font-size: 13px;
-    font-family: var(--font);
-    color: var(--text);
-    background: white;
-    width: 100%;
-    transition: border-color 0.15s;
-  }
-  .field-group input:focus, .field-group textarea:focus, .field-group select:focus {
-    outline: none; border-color: var(--primary);
-  }
-  .field-group textarea { resize: vertical; min-height: 56px; }
-
-  .checklist-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .checklist-table th {
-    background: #f0f0eb;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 6px 10px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-    color: var(--muted);
-  }
-  .checklist-table th:last-child, .checklist-table th:nth-last-child(2) { text-align: center; width: 50px; }
-  .checklist-table td { padding: 8px 10px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
-  .checklist-table tr:last-child td { border-bottom: none; }
-  .checklist-table td:last-child, .checklist-table td:nth-last-child(2) { text-align: center; }
-  .group-label { background: #f8f8f5; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 5px 10px; border-bottom: 0.5px solid var(--border); }
-
-  .check-input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
-
-  .worker-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .worker-table th { background: #f0f0eb; padding: 6px 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); border-bottom: 1px solid var(--border); }
-  .worker-table td { padding: 5px 8px; border-bottom: 0.5px solid var(--border); }
-  .worker-table td input { border: 1px solid transparent; border-radius: 3px; padding: 4px 6px; width: 100%; font-size: 12px; font-family: var(--font); }
-  .worker-table td input:focus { outline: none; border-color: var(--primary); background: var(--primary-light); }
-
-  .apto-group { display: flex; gap: 8px; justify-content: center; }
-  .apto-btn {
-    padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 500;
-    border: 1px solid var(--border); cursor: pointer; background: white;
-    transition: all 0.15s;
-  }
-  .apto-btn.si.selected { background: #f6ffed; border-color: var(--success); color: var(--success); }
-  .apto-btn.no.selected { background: #fff1f0; border-color: var(--accent); color: var(--accent); }
-
-  .bp-input { width: 70px; border: 1px solid var(--border); border-radius: 3px; padding: 4px 6px; font-size: 12px; text-align: center; font-family: var(--mono); }
-
-  .sig-area {
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: #fafafa;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: crosshair;
-    position: relative;
-    overflow: hidden;
-  }
-  .sig-area canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-  .sig-placeholder { font-size: 11px; color: #bbb; pointer-events: none; z-index: 1; }
-  .sig-clear { position: absolute; top: 4px; right: 6px; font-size: 10px; color: var(--accent); cursor: pointer; z-index: 2; background: rgba(255,255,255,0.8); border: none; padding: 2px 4px; border-radius: 2px; }
-
-  .cert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
-  .cert-box { padding: 14px 16px; border-right: 0.5px solid var(--border); }
-  .cert-box:last-child { border-right: none; }
-  .cert-box h4 { font-size: 11px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-  .cert-box p { font-size: 11px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
-
-  .submit-zone { padding: 16px; display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
-  .submit-btn {
-    background: var(--primary); color: white; border: none;
-    padding: 10px 24px; border-radius: 5px; font-size: 13px; font-weight: 500;
-    font-family: var(--font); cursor: pointer; transition: all 0.15s;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .submit-btn:hover { background: #0f2540; }
-  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .cancel-btn {
-    background: transparent; border: 1px solid var(--border); color: var(--muted);
-    padding: 10px 20px; border-radius: 5px; font-size: 13px; cursor: pointer;
-    font-family: var(--font);
-  }
-
-  .toast {
-    position: fixed; bottom: 24px; right: 24px;
-    background: #1a1a1a; color: white; padding: 12px 20px;
-    border-radius: 6px; font-size: 13px; z-index: 9999;
-    transform: translateY(80px); opacity: 0;
-    transition: all 0.3s; max-width: 320px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { background: #237804; }
-  .toast.error { background: #d4380d; }
-
-  .admin-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
-  .metric-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 8px; padding: 16px;
-  }
-  .metric-card .val { font-size: 28px; font-weight: 600; font-family: var(--mono); color: var(--primary); }
-  .metric-card .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .metric-card.danger .val { color: var(--accent); }
-  .metric-card.success .val { color: var(--success); }
-
-  .admin-section { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
-  .admin-section-hdr { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
-  .admin-section-body { padding: 16px; }
-
-  .log-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .log-table th { padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-bottom: 1px solid var(--border); }
-  .log-table td { padding: 8px 10px; border-bottom: 0.5px solid var(--border); vertical-align: top; }
-  .log-table tr:last-child td { border-bottom: none; }
-  .log-table tr:hover td { background: var(--primary-light); }
-
-  .badge {
-    display: inline-block; padding: 2px 8px; border-radius: 3px;
-    font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
-    text-transform: uppercase; font-family: var(--mono);
-  }
-  .badge.pending { background: #fff7e6; color: #d46b08; }
-  .badge.approved { background: #f6ffed; color: #237804; }
-  .badge.rejected { background: #fff1f0; color: #d4380d; }
-  .badge.closed { background: #f0f0f0; color: #666; }
-
-  .config-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
-  .config-row:last-child { border-bottom: none; }
-  .config-row label { font-size: 12px; font-weight: 500; width: 160px; flex-shrink: 0; }
-  .config-row input { flex: 1; border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; font-size: 13px; font-family: var(--font); }
-  .config-row input:focus { outline: none; border-color: var(--primary); }
-  .save-config-btn {
-    background: var(--primary); color: white; border: none;
-    padding: 7px 16px; border-radius: 4px; font-size: 12px; cursor: pointer;
-    font-family: var(--font); font-weight: 500;
-  }
-
-  .detail-modal {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.4); z-index: 500;
-    display: none; align-items: center; justify-content: center;
-    padding: 24px;
-  }
-  .detail-modal.open { display: flex; }
-  .detail-box {
-    background: white; border-radius: 8px; max-width: 600px; width: 100%;
-    max-height: 80vh; overflow-y: auto;
-  }
-  .detail-hdr { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  .detail-hdr h3 { font-size: 14px; font-weight: 600; }
-  .close-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--muted); }
-  .detail-body { padding: 20px; }
-  .detail-field { margin-bottom: 12px; }
-  .detail-field .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; font-weight: 600; }
-  .detail-field .val { font-size: 13px; }
-  .action-btns { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border); }
-  .action-btn { padding: 7px 16px; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; font-family: var(--font); }
-  .action-btn.approve { background: #f6ffed; color: var(--success); border: 1px solid #b7eb8f; }
-  .action-btn.reject { background: #fff1f0; color: var(--accent); border: 1px solid #ffa39e; }
-  .action-btn.close-permit { background: #f0f0f0; color: #666; border: 1px solid #d9d9d9; }
-
-  .empty-state { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
-  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .dot-pending { background: var(--warning); }
-  .dot-approved { background: var(--success); }
-  .dot-rejected { background: var(--accent); }
-
-  .view-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-  .view-title span { font-family: var(--mono); background: var(--primary); color: white; padding: 2px 8px; border-radius: 3px; font-size: 10px; }
-
-  .required { color: var(--accent); }
-  .help-text { font-size: 10px; color: var(--muted); margin-top: 2px; }
-
-  .progress-bar { height: 3px; background: #eee; border-radius: 2px; margin: 8px 0; }
-  .progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s; }
-
-  .part2-banner {
-    background: linear-gradient(135deg, #1a3a5c, #0f2540);
-    color: white; padding: 10px 16px; font-size: 11px;
-    font-weight: 500; letter-spacing: 0.04em;
-    display: flex; align-items: center; gap: 8px;
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pri:#1a3a5c;--pri-l:#e8f0f8;--pri-ll:#f0f5fb;
+  --acc:#d4380d;--ok:#237804;--warn:#d46b08;--inf:#0958d9;
+  --bd:rgba(0,0,0,0.11);--bd2:rgba(0,0,0,0.07);
+  --bg:#f3f3ee;--card:#fff;--txt:#1a1a1a;--mu:#6b6b6b;
+  --font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--txt);font-size:13px;line-height:1.5}
+.app-wrapper{display:flex;height:100vh;flex-direction:column}
+.topbar{background:var(--pri);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:50px;position:sticky;top:0;z-index:200}
+.brand{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.brand-tag{font-size:10px;font-family:var(--mono);background:rgba(255,255,255,.15);padding:2px 6px;border-radius:3px}
+.user-info{display:flex;align-items:center;gap:10px;font-size:11px}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:600}
+.main-content{display:flex;flex:1;overflow:hidden}
+.sidebar{width:240px;background:var(--card);border-right:1px solid var(--bd);overflow-y:auto;padding:12px 0}
+.nav-item{padding:10px 14px;font-size:11px;color:var(--mu);cursor:pointer;transition:all .15s;border-left:3px solid transparent;display:flex;align-items:center;gap:8px}
+.nav-item:hover{background:var(--pri-ll);color:var(--pri)}
+.nav-item.act{background:var(--pri-ll);color:var(--pri);border-left-color:var(--pri);font-weight:600}
+.nav-sep{height:1px;background:var(--bd2);margin:8px 0;opacity:.5}
+.content-area{flex:1;overflow-y:auto;padding:20px}
+.view{display:none}
+.view.act{display:block}
+.view-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.view-title{font-size:15px;font-weight:600}
+.view-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.select-small{border:1px solid var(--bd);border-radius:4px;padding:6px 10px;font-size:11px;font-family:var(--font);background:#fff;cursor:pointer}
+.btn-primary{background:var(--pri);color:#fff;border:none;padding:8px 16px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:500;font-family:var(--font);transition:all .15s}
+.btn-primary:hover{background:#0f2540}
+.btn-secondary{background:transparent;border:1px solid var(--bd);color:var(--txt);padding:8px 14px;border-radius:4px;font-size:11px;cursor:pointer;font-family:var(--font)}
+.btn-small{padding:5px 10px;font-size:10px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:12px}
+.card-hdr{font-size:12px;font-weight:600;color:var(--pri);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px}
+.table th{padding:8px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--mu);border-bottom:1px solid var(--bd)}
+.table td{padding:8px;border-bottom:.5px solid var(--bd2)}
+.table tr:hover td{background:var(--pri-ll)}
+.badge{display:inline-block;padding:3px 8px;border-radius:3px;font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono)}
+.badge.admin{background:#fff1f0;color:var(--acc)}
+.badge.supervisor{background:#fff7e6;color:var(--warn)}
+.badge.solicitante{background:#f0f0f0;color:#666}
+.badge.pendiente{background:#fff7e6;color:var(--warn)}
+.badge.aprobado{background:#f6ffed;color:var(--ok)}
+.badge.cerrado{background:#f0f0f0;color:#666}
+.form-group{margin-bottom:12px}
+.form-label{font-size:10px;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:block}
+.form-input,.form-select,.form-textarea{border:1px solid var(--bd);border-radius:4px;padding:8px;font-size:12px;font-family:var(--font);color:var(--txt);background:#fff;width:100%}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 2px var(--pri-ll)}
+.form-textarea{resize:vertical;min-height:60px}
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal-box{background:#fff;border-radius:8px;max-width:600px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.modal-hdr{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff}
+.modal-hdr h3{font-size:14px;font-weight:600}
+.modal-cls{background:none;border:none;font-size:20px;cursor:pointer;color:var(--mu)}
+.modal-body{padding:20px}
+.modal-actions{display:flex;gap:8px;padding:16px 20px;border-top:1px solid var(--bd);justify-content:flex-end}
+.metric-card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:16px;position:relative;overflow:hidden}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--pri)}
+.metric-val{font-size:24px;font-weight:600;font-family:var(--mono);color:var(--pri)}
+.metric-lbl{font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.map-container{width:100%;height:300px;border:1px solid var(--bd);border-radius:4px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--mu);margin-bottom:12px}
+.loc-badge{display:inline-flex;align-items:center;gap:4px;background:var(--pri-ll);color:var(--pri);padding:4px 10px;border-radius:4px;font-size:10px;font-weight:500}
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:5px;font-size:11px;z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{background:var(--ok)}
+.toast.err{background:var(--acc)}
+.toast.warn{background:var(--warn)}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.task-item{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start}
+.task-content{flex:1}
+.task-title{font-weight:600;font-size:12px;margin-bottom:2px}
+.task-desc{font-size:10px;color:var(--mu);margin-bottom:4px}
+.task-meta{font-size:9px;color:#999}
+.task-status{padding:3px 8px;border-radius:3px;font-size:9px;font-weight:600}
+.task-status.pendiente{background:#fff7e6;color:var(--warn)}
+.task-status.asignada{background:#e6f0ff;color:var(--inf)}
+.task-status.completada{background:#f6ffed;color:var(--ok)}
+.coord-display{font-family:var(--mono);font-size:11px;background:var(--pri-ll);padding:6px 10px;border-radius:3px;margin:8px 0}
+.req{color:var(--acc)}
+.help-text{font-size:10px;color:var(--mu);margin-top:2px;font-style:italic}
 </style>
+</head>
+<body>
 
-<div class="app-shell">
+<div class="app-wrapper">
+  <!-- TOPBAR -->
   <div class="topbar">
-    <div class="topbar-brand">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
-      PTS · Trabajos en Altura
-      <span>REC-SHE-02-02</span>
+    <div class="brand">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+      PTS v3
+      <span class="brand-tag">REC-SHE-02-02</span>
     </div>
-    <div class="topbar-nav">
-      <button class="nav-btn active" onclick="switchView('solicitud')">Solicitar Permiso</button>
-      <button class="nav-btn" onclick="switchView('admin')">Panel Admin</button>
-    </div>
-  </div>
-
-  <!-- VISTA SOLICITANTE -->
-  <div id="view-solicitud" class="view active">
-    <div class="view-title">Vista Solicitante <span>Trabajador / Contratista</span></div>
-
-    <div class="permit-header">
-      <div class="permit-header-left">
-        <div class="pts-badge">Nº PTS (Folio): <span id="folio-display">—</span></div>
-        <h1>Permiso de Trabajo: Trabajos en Altura</h1>
-        <p>Este permiso es obligatorio para cualquier trabajo donde una persona pueda caer de &gt;1.8 mts de altura.</p>
+    <div class="user-info">
+      <div class="user-avatar" id="user-avatar">—</div>
+      <div>
+        <div id="user-name" style="font-weight:500">Usuario</div>
+        <div id="user-sucursal" style="font-size:10px;opacity:.7">—</div>
       </div>
-      <div class="permit-header-right">
-        <div id="date-display" style="font-size:12px;opacity:0.9"></div>
-        <div id="time-display" style="font-size:14px;margin-top:4px;font-weight:500"></div>
-        <div style="margin-top:8px;font-size:10px;opacity:0.6">Versión 2.0 · 10/2016</div>
-      </div>
-    </div>
-
-    <div class="permit-alert">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Este permiso no es válido después de: <strong id="validity-display">—</strong>
-    </div>
-
-    <div class="permit-card">
-      <div class="section-header">Información General</div>
-      <div class="field-row cols-3">
-        <div class="field-group">
-          <label>Fecha de validez <span class="required">*</span></label>
-          <input type="datetime-local" id="validity-dt" onchange="updateValidity()">
-          <div class="help-text">Hasta cuándo es válido este permiso</div>
-        </div>
-        <div class="field-group">
-          <label>Ubicación del trabajo <span class="required">*</span></label>
-          <input type="text" id="ubicacion" placeholder="Especificar lo más detallado posible">
-        </div>
-        <div class="field-group">
-          <label>Descripción del trabajo <span class="required">*</span></label>
-          <input type="text" id="descripcion" placeholder="Describir la tarea a realizar">
-        </div>
-      </div>
-
-      <div class="field-row cols-3">
-        <div class="field-group">
-          <label>¿Predicción de riesgo completa?</label>
-          <select id="pred-riesgo">
-            <option value="">Seleccionar</option>
-            <option value="Si">Sí</option>
-            <option value="No">No</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label>Nº de Predicción de Riesgo</label>
-          <input type="text" id="num-pred" placeholder="Ej: PR-2024-001">
-        </div>
-        <div class="field-group">
-          <label>¿Se informó a la Autoridad del área?</label>
-          <select id="info-autoridad">
-            <option value="">Seleccionar</option>
-            <option value="Si">Sí</option>
-            <option value="No">No</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- MEDIDAS PREVIAS -->
-    <div class="permit-card">
-      <div class="section-header">Medidas Tomadas Previas al Permiso (EPP, revisión de equipamiento, herramientas)</div>
-      <table class="checklist-table">
-        <thead>
-          <tr>
-            <th style="width:110px">Categoría</th>
-            <th>Medida</th>
-            <th>Sí</th>
-            <th>N/A</th>
-          </tr>
-        </thead>
-        <tbody id="checklist-pre"></tbody>
-      </table>
-
-      <div style="padding:10px 16px">
-        <div class="field-group">
-          <label>Medidas adicionales tomadas previas al permiso:</label>
-          <textarea id="medidas-adicionales" placeholder="Describir medidas adicionales. En caso de realizar Bloqueo LOTO, incorporar Check List de realización LOTO."></textarea>
-        </div>
-      </div>
-    </div>
-
-    <!-- CONTROL DE PRESIÓN ARTERIAL -->
-    <div class="permit-card">
-      <div class="section-header">Control de Presión Arterial</div>
-      <table class="worker-table">
-        <thead>
-          <tr>
-            <th style="width:30px">Nº</th>
-            <th>Nombre del Trabajador</th>
-            <th>RUT</th>
-            <th style="width:100px">Presión</th>
-            <th style="width:80px">Apto Sí</th>
-            <th style="width:80px">Apto No</th>
-          </tr>
-        </thead>
-        <tbody id="worker-rows"></tbody>
-      </table>
-      <div style="padding:8px 16px; font-size:12px; color:var(--muted)">
-        Nombre paramédico: <input type="text" id="paramedico" style="border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-size:12px;margin-left:6px;width:200px">
-      </div>
-    </div>
-
-    <!-- PRECAUCIONES DURANTE EL TRABAJO -->
-    <div class="permit-card">
-      <div class="section-header">Precauciones Requeridas Durante el Trabajo (forma segura de trabajo, utilizar EPP)</div>
-      <table class="checklist-table">
-        <thead>
-          <tr>
-            <th style="width:120px">Categoría</th>
-            <th>Precaución</th>
-            <th>Sí</th>
-            <th>N/A</th>
-          </tr>
-        </thead>
-        <tbody id="checklist-dur"></tbody>
-      </table>
-      <div style="padding:10px 16px">
-        <div class="field-group">
-          <label>Precauciones adicionales y EPP requeridos:</label>
-          <textarea id="precauciones-adicionales" placeholder="Detallar precauciones adicionales y EPP adicional requerido..."></textarea>
-        </div>
-      </div>
-    </div>
-
-    <!-- CERTIFICACIÓN Y ACEPTACIÓN -->
-    <div class="permit-card">
-      <div class="section-header">Certificación por el Emisor de Permiso de Trabajo</div>
-      <div class="cert-grid">
-        <div class="cert-box">
-          <h4>Emisor de Permiso de Trabajo</h4>
-          <p>Yo certifico que: a) He visitado el área de trabajo, revisado el trabajo y los riesgos involucrados junto con la Autoridad en Realización; b) Los controles establecidos en este PTS permitirán realizar el trabajo de forma segura; c) Las medidas previas al permiso han sido implementadas; y d) La Autoridad en Realización comprende los controles requeridos y es capaz de implementarlos.</p>
-          <div class="field-group" style="margin-bottom:8px">
-            <label>Nombre (Imprenta) <span class="required">*</span></label>
-            <input type="text" id="emisor-nombre" placeholder="Nombre completo">
-          </div>
-          <div class="field-group" style="margin-bottom:6px">
-            <label>Firma <span class="required">*</span></label>
-            <div class="sig-area" id="sig-emisor">
-              <canvas id="canvas-emisor"></canvas>
-              <span class="sig-placeholder">Firmar aquí</span>
-              <button class="sig-clear" onclick="clearSig('emisor')" type="button">Limpiar</button>
-            </div>
-          </div>
-        </div>
-        <div class="cert-box">
-          <h4>Autoridad en Realización</h4>
-          <p>Yo certifico que voy a supervisar personalmente el trabajo para asegurar que: A) El trabajo sea realizado dentro de los límites descritos; B) Los controles establecidos son seguidos por todos los trabajadores; C) Todos los trabajadores comprenden los riesgos y los controles requeridos; D) Si cualquier requisito cambia, si se identifica un riesgo nuevo o hay un incidente, el trabajo será detenido y se notificará al Emisor de Permisos.</p>
-          <div class="field-group" style="margin-bottom:8px">
-            <label>Nombre (Imprenta) <span class="required">*</span></label>
-            <input type="text" id="autoridad-nombre" placeholder="Nombre completo">
-          </div>
-          <div class="field-group" style="margin-bottom:6px">
-            <label>Cargo / Área</label>
-            <input type="text" id="autoridad-cargo" placeholder="Ej: Jefe de Turno, Área Producción">
-          </div>
-          <div class="field-group" style="margin-bottom:6px">
-            <label>Firma de Aceptación <span class="required">*</span></label>
-            <div class="sig-area" id="sig-autoridad">
-              <canvas id="canvas-autoridad"></canvas>
-              <span class="sig-placeholder">Firmar aquí</span>
-              <button class="sig-clear" onclick="clearSig('autoridad')" type="button">Limpiar</button>
-            </div>
-          </div>
-          <div class="field-group">
-            <label>Fecha y hora de aceptación</label>
-            <input type="datetime-local" id="aceptacion-dt">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PARTE 2 -->
-    <div class="permit-card" style="border-radius:0 0 8px 8px">
-      <div class="part2-banner">
-        PARTE 2 — Completar esta parte cuando se ha terminado el trabajo
-      </div>
-      <div style="padding:12px 16px">
-        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px">Medidas Posteriores al Permiso Requeridas (Trabajos finales / dejar el área segura)</div>
-        <table class="checklist-table">
-          <thead><tr><th>Medida de restablecimiento</th><th>Sí</th><th>N/A</th></tr></thead>
-          <tbody>
-            <tr>
-              <td>Sacar barreras temporales a nivel de piso</td>
-              <td><input type="checkbox" class="check-input" id="post-1"></td>
-              <td><input type="checkbox" class="check-input" id="post-na-1"></td>
-            </tr>
-          </tbody>
-        </table>
-        <div style="margin-top:8px">
-          <div class="field-group">
-            <label>Medidas posteriores al permiso adicionales requeridas:</label>
-            <textarea id="medidas-post" placeholder="Describir medidas adicionales al cierre..."></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="cert-grid" style="border-top:1px solid var(--border)">
-        <div class="cert-box">
-          <h4>Cierre por Emisor de PTS</h4>
-          <p>Declaro este PTS cerrado. No se realizarán más trabajos en altura. Las medidas posteriores al permiso establecidas anteriormente son suficientes.</p>
-          <div class="field-group" style="margin-bottom:6px">
-            <label>Nombre (Imprenta)</label>
-            <input type="text" id="cierre-emisor-nombre" placeholder="Nombre completo">
-          </div>
-          <div class="field-group">
-            <label>Firma de Cierre</label>
-            <div class="sig-area" id="sig-cierre-emisor">
-              <canvas id="canvas-cierre-emisor"></canvas>
-              <span class="sig-placeholder">Firmar aquí</span>
-              <button class="sig-clear" onclick="clearSig('cierre-emisor')" type="button">Limpiar</button>
-            </div>
-          </div>
-        </div>
-        <div class="cert-box">
-          <h4>Conocimiento por Autoridad en Realización</h4>
-          <p>Estoy en conocimiento que este PTS ya no es válido y no se pueden realizar más trabajos en altura. He hecho el área de trabajo segura.</p>
-          <div class="field-group" style="margin-bottom:6px">
-            <label>Nombre (Imprenta)</label>
-            <input type="text" id="cierre-autoridad-nombre" placeholder="Nombre completo">
-          </div>
-          <div class="field-group">
-            <label>Firma de Conocimiento</label>
-            <div class="sig-area" id="sig-cierre-autoridad">
-              <canvas id="canvas-cierre-autoridad"></canvas>
-              <span class="sig-placeholder">Firmar aquí</span>
-              <button class="sig-clear" onclick="clearSig('cierre-autoridad')" type="button">Limpiar</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="submit-zone">
-        <div style="flex:1;font-size:11px;color:var(--muted)">
-          Progreso del formulario:
-          <div class="progress-bar"><div class="progress-fill" id="form-progress" style="width:0%"></div></div>
-          <span id="progress-pct">0%</span> completado
-        </div>
-        <button class="cancel-btn" onclick="resetForm()">Limpiar todo</button>
-        <button class="submit-btn" id="submit-btn" onclick="submitPermit()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-          Enviar y Notificar
-        </button>
-      </div>
+      <button class="btn-secondary btn-small" onclick="logout()">Salir</button>
     </div>
   </div>
 
-  <!-- VISTA ADMIN -->
-  <div id="view-admin" class="view">
-    <div class="view-title">Panel de Administración <span>Supervisor / SHE</span></div>
-
-    <div class="admin-grid" id="metrics-grid">
-      <div class="metric-card"><div class="val" id="m-total">0</div><div class="lbl">Total Permisos</div></div>
-      <div class="metric-card danger"><div class="val" id="m-pending">0</div><div class="lbl">Pendientes</div></div>
-      <div class="metric-card success"><div class="val" id="m-approved">0</div><div class="lbl">Aprobados</div></div>
-      <div class="metric-card"><div class="val" id="m-closed">0</div><div class="lbl">Cerrados</div></div>
+  <div class="main-content">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="nav-item act" onclick="navTo('dashboard')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="navTo('solicitud')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Solicitar Permiso
+      </div>
+      <div class="nav-item" onclick="navTo('tareas')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Tareas
+      </div>
+      <div class="nav-sep"></div>
+      <div class="nav-item" onclick="navTo('admin-usuarios')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Usuarios
+      </div>
+      <div class="nav-item" onclick="navTo('admin-sucursales')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Sucursales
+      </div>
+      <div class="nav-item" onclick="navTo('admin-notificaciones')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Notificaciones
+      </div>
+      <div class="nav-item" onclick="navTo('admin-integraciones')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Integraciones
+      </div>
     </div>
 
-    <div class="admin-section">
-      <div class="admin-section-hdr">
-        Configuración del Sistema
-        <button class="save-config-btn" onclick="saveConfig()">Guardar</button>
+    <!-- CONTENT -->
+    <div class="content-area">
+      <!-- LOGIN -->
+      <div id="view-login" class="view act">
+        <div style="max-width:400px;margin:60px auto;text-align:center">
+          <h1 style="margin-bottom:8px">PTS v3</h1>
+          <p style="color:var(--mu);margin-bottom:24px">Sistema Integral de Permisos de Trabajo</p>
+          <div class="form-group">
+            <label class="form-label">Usuario</label>
+            <input type="text" class="form-input" id="login-user" placeholder="usuario">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contraseña</label>
+            <input type="password" class="form-input" id="login-pass" placeholder="contraseña">
+          </div>
+          <button class="btn-primary" style="width:100%" onclick="doLogin()">Ingresar</button>
+          <p style="margin-top:16px;font-size:10px;color:var(--mu)">
+            Demo: usuario=admin | contraseña=123<br>
+            Demo: usuario=supervisor | contraseña=123
+          </p>
+        </div>
       </div>
-      <div class="admin-section-body">
-        <div class="config-row">
-          <label>Correo de notificaciones</label>
-          <input type="email" id="cfg-email" placeholder="correo@empresa.com">
-          <span style="font-size:11px;color:var(--muted)">Recibe alertas de nuevos permisos</span>
-        </div>
-        <div class="config-row">
-          <label>Nombre de la empresa</label>
-          <input type="text" id="cfg-empresa" placeholder="Nombre de la organización">
-        </div>
-        <div class="config-row">
-          <label>Responsable SHE</label>
-          <input type="text" id="cfg-she" placeholder="Nombre del responsable SHE">
-        </div>
-      </div>
-    </div>
 
-    <div class="admin-section">
-      <div class="admin-section-hdr">
-        Registro de Permisos
-        <div style="display:flex;gap:6px">
-          <select id="filter-status" onchange="renderLog()" style="font-size:11px;border:1px solid var(--border);border-radius:3px;padding:3px 6px;font-family:var(--font)">
-            <option value="">Todos los estados</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="aprobado">Aprobado</option>
-            <option value="rechazado">Rechazado</option>
-            <option value="cerrado">Cerrado</option>
-          </select>
+      <!-- DASHBOARD -->
+      <div id="view-dashboard" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Dashboard</h2>
+          <div class="view-controls">
+            <select class="select-small" id="dash-sucursal-filter" onchange="renderDashboard()">
+              <option value="">Todas las sucursales</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-3" id="dash-metrics">
+          <div class="metric-card"><div class="metric-val" id="m-total-permisos">0</div><div class="metric-lbl">Total Permisos</div></div>
+          <div class="metric-card"><div class="metric-val" id="m-pendientes">0</div><div class="metric-lbl">Pendientes</div></div>
+          <div class="metric-card"><div class="metric-val" id="m-aprobados">0</div><div class="metric-lbl">Aprobados</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Permisos Recientes</div>
+          <table class="table">
+            <thead><tr><th>Folio</th><th>Sucursal</th><th>Ubicación</th><th>Emisor</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="dash-permisos-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--mu)">Sin permisos</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="admin-section-body" style="padding:0">
-        <table class="log-table">
-          <thead>
-            <tr>
-              <th>Folio</th>
-              <th>Fecha / Hora</th>
-              <th>Ubicación</th>
-              <th>Emisor</th>
-              <th>Autoridad</th>
-              <th>Trabajadores</th>
-              <th>Campos</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="log-body">
-            <tr><td colspan="9" class="empty-state">No hay permisos registrados aún.</td></tr>
-          </tbody>
-        </table>
+
+      <!-- SOLICITUD DE PERMISO -->
+      <div id="view-solicitud" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Solicitar Permiso de Trabajo en Altura</h2>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Información General</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Sucursal/Centro de Trabajo <span class="req">*</span></label>
+              <select class="form-select" id="sol-sucursal">
+                <option value="">Seleccionar...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fecha de validez <span class="req">*</span></label>
+              <input type="datetime-local" class="form-input" id="sol-validez">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ubicación del trabajo <span class="req">*</span></label>
+              <input type="text" class="form-input" id="sol-ubicacion" placeholder="Especificar detalladamente">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descripción del trabajo <span class="req">*</span></label>
+              <input type="text" class="form-input" id="sol-descripcion" placeholder="Describir la tarea">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Geolocalización</div>
+          <div class="map-container" id="map-preview">
+            Haz clic para capturar ubicación actual
+          </div>
+          <button class="btn-secondary btn-small" onclick="captureLocation()">📍 Capturar Coordenadas Actuales</button>
+          <div id="coord-display" style="display:none">
+            <div class="coord-display" id="coords-text">Lat: 0, Lng: 0</div>
+          </div>
+          <div class="form-group" style="margin-top:8px">
+            <label class="form-label">Coordenadas Manuales (Lat, Lng)</label>
+            <input type="text" class="form-input" id="sol-coords" placeholder="-33.8688, -51.2093" style="font-family:var(--mono);font-size:11px">
+            <div class="help-text">Ej: -33.8688, -51.2093</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Datos de Contacto</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Nombre Completo <span class="req">*</span></label>
+              <input type="text" class="form-input" id="sol-nombre">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Teléfono</label>
+              <input type="tel" class="form-input" id="sol-telefono" placeholder="+56912345678">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email <span class="req">*</span></label>
+              <input type="email" class="form-input" id="sol-email">
+            </div>
+            <div class="form-group">
+              <label class="form-label">WhatsApp (opcional)</label>
+              <input type="tel" class="form-input" id="sol-whatsapp" placeholder="+56912345678">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Trabajadores Involucrados</div>
+          <div class="form-group">
+            <label class="form-label">Cantidad de trabajadores <span class="req">*</span></label>
+            <input type="number" class="form-input" id="sol-num-trabajadores" min="1" value="1" onchange="buildWorkerRows()">
+          </div>
+          <table class="table" id="workers-table" style="margin-top:12px">
+            <thead><tr><th>Nº</th><th>Nombre</th><th>RUT</th><th>Puesto</th></tr></thead>
+            <tbody id="workers-tbody"></tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:20px">
+          <button class="btn-secondary" onclick="resetSolicitud()">Limpiar</button>
+          <button class="btn-primary" onclick="enviarSolicitud()">Enviar Solicitud</button>
+          <button class="btn-secondary btn-small" onclick="genPDF()" style="margin-left:auto">📄 Descargar PDF</button>
+        </div>
+      </div>
+
+      <!-- TAREAS -->
+      <div id="view-tareas" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Mis Tareas</h2>
+          <button class="btn-primary btn-small" onclick="openModalTarea()">+ Nueva Tarea</button>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Tareas Asignadas a Mí</div>
+          <div id="tareas-container"></div>
+        </div>
+      </div>
+
+      <!-- ADMIN: USUARIOS -->
+      <div id="view-admin-usuarios" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Gestión de Usuarios</h2>
+          <button class="btn-primary btn-small" onclick="openModalUsuario()">+ Nuevo Usuario</button>
+        </div>
+
+        <div class="card">
+          <table class="table">
+            <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Sucursal</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="usuarios-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--mu)">Sin usuarios</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ADMIN: SUCURSALES -->
+      <div id="view-admin-sucursales" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Gestión de Sucursales</h2>
+          <button class="btn-primary btn-small" onclick="openModalSucursal()">+ Nueva Sucursal</button>
+        </div>
+
+        <div class="card">
+          <table class="table">
+            <thead><tr><th>Nombre</th><th>Ubicación</th><th>Coordenadas</th><th>Responsable</th><th>Acciones</th></tr></thead>
+            <tbody id="sucursales-tbody">
+              <tr><td colspan="5" style="text-align:center;color:var(--mu)">Sin sucursales</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ADMIN: NOTIFICACIONES -->
+      <div id="view-admin-notificaciones" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Configuración de Notificaciones</h2>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Canales de Notificación</div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
+              <input type="checkbox" id="notif-email" checked>
+              <span>Notificaciones por Email</span>
+            </label>
+            <input type="email" class="form-input" id="notif-email-addr" placeholder="correo@empresa.com" style="margin-top:6px">
+          </div>
+
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
+              <input type="checkbox" id="notif-sms">
+              <span>Notificaciones por SMS (Twilio)</span>
+            </label>
+            <input type="tel" class="form-input" id="notif-sms-number" placeholder="+56912345678" style="margin-top:6px">
+            <input type="text" class="form-input" id="notif-sms-token" placeholder="Token Twilio" style="margin-top:6px">
+          </div>
+
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
+              <input type="checkbox" id="notif-whatsapp">
+              <span>Notificaciones por WhatsApp</span>
+            </label>
+            <input type="tel" class="form-input" id="notif-whatsapp-number" placeholder="+56912345678" style="margin-top:6px">
+            <input type="text" class="form-input" id="notif-whatsapp-token" placeholder="Token Twilio" style="margin-top:6px">
+          </div>
+
+          <button class="btn-primary" onclick="guardarNotificaciones()">Guardar Configuración</button>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Historial de Notificaciones</div>
+          <table class="table">
+            <thead><tr><th>Fecha</th><th>Tipo</th><th>Destinatario</th><th>Asunto</th><th>Estado</th></tr></thead>
+            <tbody id="notif-historial-tbody">
+              <tr><td colspan="5" style="text-align:center;color:var(--mu)">Sin registro</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ADMIN: INTEGRACIONES -->
+      <div id="view-admin-integraciones" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Integraciones Externas</h2>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Conectores</div>
+          <div class="form-group">
+            <label class="form-label">Webhooks / APIs JSON</label>
+            <input type="url" class="form-input" id="integ-webhook" placeholder="https://tu-api.com/webhook">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Zapier Webhook</label>
+            <input type="url" class="form-input" id="integ-zapier" placeholder="https://hooks.zapier.com/...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Power Automate Flow URL</label>
+            <input type="url" class="form-input" id="integ-powerautomate" placeholder="https://prod-xxx.logic.azure.com/...">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Almacenamiento en Nube</div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+              <input type="checkbox" id="storage-drive" checked>
+              Google Drive (Respaldar PDF)
+            </label>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+              <input type="checkbox" id="storage-onedrive">
+              OneDrive (Respaldar PDF)
+            </label>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+              <input type="checkbox" id="storage-dropbox">
+              Dropbox (Respaldar PDF)
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Base de Datos</div>
+          <div class="form-group">
+            <label class="form-label">PostgreSQL Connection String</label>
+            <input type="text" class="form-input" id="db-postgres" placeholder="postgresql://user:pass@host/db">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Airtable API Key</label>
+            <input type="password" class="form-input" id="db-airtable" placeholder="key...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Firebase Connection</label>
+            <input type="text" class="form-input" id="db-firebase" placeholder="firebase-project-id">
+          </div>
+          <div class="form-group">
+            <label class="form-label">MySQL Connection String</label>
+            <input type="text" class="form-input" id="db-mysql" placeholder="mysql://user:pass@host/db">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Productividad</div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+              <input type="checkbox" id="prod-asana">
+              Crear tarea en Asana
+            </label>
+            <input type="text" class="form-input" id="prod-asana-token" placeholder="API Token Asana" style="margin-top:6px;display:none">
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+              <input type="checkbox" id="prod-trello">
+              Crear tarjeta en Trello
+            </label>
+            <input type="text" class="form-input" id="prod-trello-token" placeholder="API Token Trello" style="margin-top:6px;display:none">
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+              <input type="checkbox" id="prod-gcal">
+              Crear evento en Google Calendar
+            </label>
+            <input type="text" class="form-input" id="prod-gcal-token" placeholder="Google Calendar API Key" style="margin-top:6px;display:none">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">Analytics & Reportes</div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+              <input type="checkbox" id="analytics-sheets">
+              Exportar a Google Sheets
+            </label>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+              <input type="checkbox" id="analytics-datastudio">
+              Conectar a Data Studio
+            </label>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+              <input type="checkbox" id="analytics-powerbi">
+              Conectar a Power BI
+            </label>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="guardarIntegraciones()">Guardar Integraciones</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- DETAIL MODAL -->
-<div class="detail-modal" id="detail-modal">
-  <div class="detail-box">
-    <div class="detail-hdr">
-      <h3 id="modal-title">Detalle del Permiso</h3>
-      <button class="close-btn" onclick="closeModal()">×</button>
+<!-- MODALS -->
+<div class="modal-bg" id="modal-usuario">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3>Crear/Editar Usuario</h3><button class="modal-cls" onclick="closeModal('usuario')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Usuario (Username)</label>
+        <input type="text" class="form-input" id="mod-user-username" placeholder="juan.perez">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" class="form-input" id="mod-user-pass" placeholder="••••••">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nombre Completo</label>
+        <input type="text" class="form-input" id="mod-user-nombre" placeholder="Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="mod-user-email" placeholder="juan@empresa.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rol</label>
+        <select class="form-select" id="mod-user-rol">
+          <option value="admin">Admin Global</option>
+          <option value="admin-sucursal">Admin de Sucursal</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="solicitante">Solicitante</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sucursal Asignada</label>
+        <select class="form-select" id="mod-user-sucursal"></select>
+      </div>
     </div>
-    <div class="detail-body" id="modal-body"></div>
-    <div class="action-btns" id="modal-actions"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('usuario')">Cancelar</button>
+      <button class="btn-primary" onclick="saveUsuario()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-sucursal">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3>Crear/Editar Sucursal</h3><button class="modal-cls" onclick="closeModal('sucursal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nombre de Sucursal</label>
+        <input type="text" class="form-input" id="mod-sucursal-nombre" placeholder="Sucursal Centro">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ubicación</label>
+        <input type="text" class="form-input" id="mod-sucursal-ubicacion" placeholder="Calle Principal 123, Santiago">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Coordenadas (Lat, Lng)</label>
+        <input type="text" class="form-input" id="mod-sucursal-coords" placeholder="-33.8688, -51.2093" style="font-family:var(--mono)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Responsable</label>
+        <input type="text" class="form-input" id="mod-sucursal-resp" placeholder="Nombre del responsable">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Teléfono</label>
+        <input type="tel" class="form-input" id="mod-sucursal-tel" placeholder="+56912345678">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('sucursal')">Cancelar</button>
+      <button class="btn-primary" onclick="saveSucursal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-tarea">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3>Nueva Tarea</h3><button class="modal-cls" onclick="closeModal('tarea')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Título</label>
+        <input type="text" class="form-input" id="mod-tarea-titulo" placeholder="Revisar permiso PTS-ALT-...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <textarea class="form-textarea" id="mod-tarea-desc" placeholder="Detalles de la tarea..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Asignar a</label>
+        <select class="form-select" id="mod-tarea-asignado"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha de Vencimiento</label>
+        <input type="date" class="form-input" id="mod-tarea-fecha">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prioridad</label>
+        <select class="form-select" id="mod-tarea-prioridad">
+          <option value="baja">Baja</option>
+          <option value="media" selected>Media</option>
+          <option value="alta">Alta</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('tarea')">Cancelar</button>
+      <button class="btn-primary" onclick="saveTarea()">Crear Tarea</button>
+    </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const CHECKLISTS = {
-  pre: [
-    { cat: 'Área de trabajo y acceso', items: [
-      'Se ha confirmado la capacidad de soporte de carga de servicio del área de trabajo. El límite de carga de servicio está claramente etiquetado.',
-      'Área de trabajo equipada en todos los bordes con rodapié, baranda a la altura de la rodilla y pasamano. Se da prioridad a las barandas por encima de los sistemas de protección contra caídas.',
-      'Trabajadores capacitados arman el andamio móvil y es revisado por una persona competente. Incorporar tarjetas verde y roja, solo utilizar andamios modelo Layer Ero, conexión con roseta.',
-      'Se han revisado las escaleras de acceso y están en condición segura de trabajo.',
-      'La plataforma de trabajo es estable y/o está fija. (En caso de techumbre esta se encuentra seca, sin rocío, ni lluvia).',
-      'Plataformas elevadoras de trabajo móvil son apropiadas para la tarea y están en condición segura. Se ha realizado una inspección formal dentro de los últimos 6 meses. Incluye Check List diario.',
-      'El uso de plataformas elevadoras de trabajo móvil está limitado solamente a las personas competentes. Con curso de manejo.'
-    ]},
-    { cat: 'Protección de áreas debajo del trabajo', items: [
-      'Se han demarcado las áreas a nivel de piso con barreras temporales y señalización de advertencia.',
-      'Se han puesto protecciones o redes de seguridad para evitar caída de material.',
-      'Al trabajar con escaleras, una persona está afirmando la escalera mientras se trabaja sobre ella.',
-      'Se ha instalado un conducto de vaciado para material de desecho.'
-    ]},
-    { cat: 'Emergencia', items: [
-      'Se ha acordado y comunicado un plan de rescate en caso de emergencia, incluido cómo llamar por ayuda.',
-      'Hay un equipo de rescate adecuado en el lugar (especificar a continuación).'
-    ]},
-    { cat: 'Capacidad del trabajador', items: [
-      'Los trabajadores son competentes para trabajar y realizar las actividades de forma segura.'
-    ]}
-  ],
-  dur: [
-    { cat: 'Moverse y trabajar', items: [
-      'Seguir procedimientos definidos para moverse a través de superficies en altura. Utilizar una pasarela sobre superficies de techos frágiles.',
-      'No subir o encaramarse en las barandas.',
-      'No lanzar o dejar caer ningún material desde las plataformas de trabajo o techos; ¡en su lugar se deben usar conductos de vaciado!'
-    ]},
-    { cat: 'Cerrar aberturas', items: [
-      'Cubrir inmediatamente cualquier abertura. Asegurar las cubiertas para que no se resbalen.'
-    ]},
-    { cat: 'EPP', items: [
-      'Usar casco con barbiquejo, zapatos de seguridad, antiparras, protector solar (si aplica).',
-      'Usar Arnés de seguridad con 2 cabos de vida.'
-    ]},
-    { cat: 'Finalización del trabajo', items: [
-      'Sacar a todas las personas, herramientas y materiales de altura.'
-    ]}
-  ]
+// DATOS GLOBALES
+let currentUser = null;
+let app = {
+  usuarios: [],
+  sucursales: [],
+  permisos: [],
+  tareas: [],
+  notificaciones: [],
+  integraciones: {}
 };
 
-let permits = JSON.parse(localStorage.getItem('pts_permits') || '[]');
-let config = JSON.parse(localStorage.getItem('pts_config') || '{"email":"branco.sp2311@gmail.com","empresa":"","she":""}');
-let sigs = {};
-let drawState = {};
-
-function genFolio() {
-  const d = new Date();
-  return 'PTS-' + d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2) + '-' + Math.floor(Math.random()*9000+1000);
+// Cargar datos de localStorage
+function loadData() {
+  try {
+    const saved = localStorage.getItem('pts_app_data');
+    if(saved) app = JSON.parse(saved);
+  } catch(e) {}
+  initializeDemo();
 }
 
-const currentFolio = genFolio();
-document.getElementById('folio-display').textContent = currentFolio;
-
-function updateClock() {
-  const n = new Date();
-  document.getElementById('date-display').textContent = n.toLocaleDateString('es-CL', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('time-display').textContent = n.toLocaleTimeString('es-CL');
-}
-updateClock(); setInterval(updateClock, 1000);
-
-function updateValidity() {
-  const v = document.getElementById('validity-dt').value;
-  if (v) {
-    const d = new Date(v);
-    document.getElementById('validity-display').textContent = d.toLocaleString('es-CL');
-  }
-  updateProgress();
+function saveData() {
+  try {
+    localStorage.setItem('pts_app_data', JSON.stringify(app));
+  } catch(e) {}
 }
 
-function buildChecklist(data, tbodyId) {
-  const tbody = document.getElementById(tbodyId);
-  data.forEach(cat => {
-    const groupRow = document.createElement('tr');
-    groupRow.innerHTML = `<td colspan="4" class="group-label">${cat.cat}</td>`;
-    tbody.appendChild(groupRow);
-    cat.items.forEach((item, i) => {
-      const id = tbodyId + '-' + cat.cat.substring(0,4) + i;
-      const row = document.createElement('tr');
-      row.innerHTML = `<td style="color:var(--muted);font-size:11px">${cat.cat}</td><td>${item}</td><td><input type="checkbox" class="check-input" id="${id}-si" onchange="updateProgress()"></td><td><input type="checkbox" class="check-input" id="${id}-na" onchange="updateProgress()"></td>`;
-      tbody.appendChild(row);
-    });
-  });
-}
-buildChecklist(CHECKLISTS.pre, 'checklist-pre');
-buildChecklist(CHECKLISTS.dur, 'checklist-dur');
-
-function buildWorkerRows() {
-  const tbody = document.getElementById('worker-rows');
-  for (let i = 1; i <= 15; i++) {
-    tbody.innerHTML += `<tr>
-      <td style="color:var(--muted);font-weight:500">${i}</td>
-      <td><input type="text" placeholder="Nombre completo" id="w${i}-name"></td>
-      <td><input type="text" placeholder="12.345.678-9" id="w${i}-rut"></td>
-      <td><input type="text" class="bp-input" placeholder="120/80" id="w${i}-bp"></td>
-      <td style="text-align:center"><input type="checkbox" class="check-input" id="w${i}-si" onchange="updateProgress()"></td>
-      <td style="text-align:center"><input type="checkbox" class="check-input" id="w${i}-no"></td>
-    </tr>`;
+function initializeDemo() {
+  if(app.usuarios.length === 0) {
+    app.usuarios = [
+      {id:'user1',username:'admin',pass:'123',nombre:'Administrador',email:'admin@empresa.com',rol:'admin',sucursal:null,activo:true},
+      {id:'user2',username:'supervisor',pass:'123',nombre:'Supervisor Centro',email:'supervisor@empresa.com',rol:'supervisor',sucursal:'suc1',activo:true}
+    ];
+    app.sucursales = [
+      {id:'suc1',nombre:'Sucursal Centro',ubicacion:'Calle Principal 123',lat:-33.8688,lng:-51.2093,resp:'Juan Pérez',tel:'+56912345678'},
+      {id:'suc2',nombre:'Sucursal Sur',ubicacion:'Av. Nueva 456',lat:-33.9,lng:-51.5,resp:'María González',tel:'+56987654321'}
+    ];
+    saveData();
   }
 }
-buildWorkerRows();
 
-function initCanvas(id) {
-  const container = document.getElementById('sig-' + id);
-  const canvas = document.getElementById('canvas-' + id);
-  if (!canvas) return;
-  canvas.width = container.offsetWidth || 300;
-  canvas.height = 80;
-  const ctx = canvas.getContext('2d');
-  ctx.strokeStyle = '#1a1a1a';
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  sigs[id] = false;
-  drawState[id] = { drawing: false, ctx };
-
-  canvas.addEventListener('mousedown', e => { drawState[id].drawing = true; const r = canvas.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(e.clientX-r.left, e.clientY-r.top); });
-  canvas.addEventListener('mousemove', e => { if (!drawState[id].drawing) return; const r = canvas.getBoundingClientRect(); ctx.lineTo(e.clientX-r.left, e.clientY-r.top); ctx.stroke(); sigs[id] = true; document.getElementById('canvas-' + id).parentElement.querySelector('.sig-placeholder').style.display = 'none'; updateProgress(); });
-  canvas.addEventListener('mouseup', () => drawState[id].drawing = false);
-  canvas.addEventListener('mouseleave', () => drawState[id].drawing = false);
-
-  canvas.addEventListener('touchstart', e => { e.preventDefault(); drawState[id].drawing = true; const r = canvas.getBoundingClientRect(); const t = e.touches[0]; ctx.beginPath(); ctx.moveTo(t.clientX-r.left, t.clientY-r.top); });
-  canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawState[id].drawing) return; const r = canvas.getBoundingClientRect(); const t = e.touches[0]; ctx.lineTo(t.clientX-r.left, t.clientY-r.top); ctx.stroke(); sigs[id] = true; document.getElementById('canvas-' + id).parentElement.querySelector('.sig-placeholder').style.display = 'none'; updateProgress(); });
-  canvas.addEventListener('touchend', () => drawState[id].drawing = false);
+function doLogin() {
+  const user = document.getElementById('login-user').value;
+  const pass = document.getElementById('login-pass').value;
+  const found = app.usuarios.find(u => u.username === user && u.pass === pass);
+  if(!found) { showToast('Usuario o contraseña incorrecta','err'); return; }
+  currentUser = found;
+  navTo('dashboard');
+  updateUserInfo();
+  renderDashboard();
+  renderSucursalFilters();
 }
 
-setTimeout(() => {
-  ['emisor','autoridad','cierre-emisor','cierre-autoridad'].forEach(initCanvas);
-}, 200);
-
-function clearSig(id) {
-  const canvas = document.getElementById('canvas-' + id);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  sigs[id] = false;
-  document.getElementById('canvas-' + id).parentElement.querySelector('.sig-placeholder').style.display = '';
-  updateProgress();
+function logout() {
+  currentUser = null;
+  navTo('login');
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
 }
 
-function updateProgress() {
-  const fields = [
-    document.getElementById('ubicacion').value,
-    document.getElementById('descripcion').value,
-    document.getElementById('validity-dt').value,
-    document.getElementById('emisor-nombre').value,
-    document.getElementById('autoridad-nombre').value,
-  ];
-  let filled = fields.filter(f => f && f.trim()).length;
-  if (sigs['emisor']) filled++;
-  if (sigs['autoridad']) filled++;
-  const pct = Math.round((filled / 7) * 100);
-  document.getElementById('form-progress').style.width = pct + '%';
-  document.getElementById('progress-pct').textContent = pct + '%';
+function updateUserInfo() {
+  const name = document.getElementById('user-name');
+  const avatar = document.getElementById('user-avatar');
+  const sucursal = document.getElementById('user-sucursal');
+  if(!currentUser) return;
+  if(name) name.textContent = currentUser.nombre;
+  if(avatar) avatar.textContent = currentUser.nombre.charAt(0).toUpperCase();
+  const suc = currentUser.sucursal ? app.sucursales.find(s => s.id === currentUser.sucursal) : null;
+  if(sucursal) sucursal.textContent = suc ? suc.nombre : 'Admin Global';
 }
 
-setInterval(updateProgress, 1000);
+function navTo(view) {
+  if(!currentUser && view !== 'login') { navTo('login'); return; }
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('act'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('act'));
+  const v = document.getElementById('view-' + view);
+  if(v) v.classList.add('act');
+  const navItem = document.querySelector('.nav-item[onclick*="' + view + '"]');
+  if(navItem) navItem.classList.add('act');
+  if(view === 'dashboard') renderDashboard();
+  if(view === 'solicitud') renderSolicitudForm();
+  if(view === 'tareas') renderTareas();
+  if(view === 'admin-usuarios') renderUsuarios();
+  if(view === 'admin-sucursales') renderSucursales();
+}
 
-function getWorkers() {
-  const workers = [];
-  for (let i = 1; i <= 15; i++) {
-    const name = document.getElementById('w'+i+'-name').value;
-    if (name.trim()) {
-      workers.push({ name, rut: document.getElementById('w'+i+'-rut').value, bp: document.getElementById('w'+i+'-bp').value, apto: document.getElementById('w'+i+'-si').checked ? 'Sí' : (document.getElementById('w'+i+'-no').checked ? 'No' : '—') });
+// DASHBOARD
+function renderDashboard() {
+  const filter = document.getElementById('dash-sucursal-filter')?.value || '';
+  let filtered = app.permisos;
+  if(!currentUser.sucursal && filter) filtered = app.permisos.filter(p => p.sucursal === filter);
+  else if(currentUser.sucursal) filtered = app.permisos.filter(p => p.sucursal === currentUser.sucursal);
+
+  document.getElementById('m-total-permisos').textContent = filtered.length;
+  document.getElementById('m-pendientes').textContent = filtered.filter(p => p.estado === 'pendiente').length;
+  document.getElementById('m-aprobados').textContent = filtered.filter(p => p.estado === 'aprobado').length;
+
+  const tbody = document.getElementById('dash-permisos-tbody');
+  if(!filtered.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--mu)">Sin permisos</td></tr>'; return; }
+  tbody.innerHTML = filtered.slice(0,10).map(p => {
+    const suc = app.sucursales.find(s => s.id === p.sucursal);
+    return '<tr><td><code style="font-size:10px">'+p.folio+'</code></td><td>'+( suc?.nombre||'—')+'</td><td>'+p.ubicacion+'</td><td>'+p.emisor+'</td><td><span class="badge '+p.estado+'">'+p.estado+'</span></td><td><button class="btn-secondary btn-small" onclick="alert(\'Ver detalle\')">Ver</button></td></tr>';
+  }).join('');
+}
+
+function renderSucursalFilters() {
+  const sel = document.getElementById('dash-sucursal-filter');
+  if(!sel) return;
+  if(currentUser.rol === 'admin') {
+    sel.innerHTML = '<option value="">Todas las sucursales</option>' + app.sucursales.map(s => '<option value="'+s.id+'">'+s.nombre+'</option>').join('');
+  } else {
+    sel.style.display = 'none';
+  }
+  const sol_sel = document.getElementById('sol-sucursal');
+  if(sol_sel) {
+    if(currentUser.rol === 'admin') {
+      sol_sel.innerHTML = app.sucursales.map(s => '<option value="'+s.id+'">'+s.nombre+'</option>').join('');
+    } else {
+      sol_sel.innerHTML = '<option value="'+currentUser.sucursal+'">'+app.sucursales.find(s=>s.id===currentUser.sucursal)?.nombre+'</option>';
     }
   }
-  return workers;
 }
 
-function getCheckedCount(tbodyId) {
-  const tbody = document.getElementById(tbodyId);
-  return tbody.querySelectorAll('input[type=checkbox]:checked').length;
+// SOLICITUD FORM
+function renderSolicitudForm() {
+  const numInput = document.getElementById('sol-num-trabajadores');
+  if(numInput) numInput.value = 1;
+  buildWorkerRows();
 }
 
-async function submitPermit() {
-  const ubicacion = document.getElementById('ubicacion').value.trim();
-  const descripcion = document.getElementById('descripcion').value.trim();
-  const emisorNombre = document.getElementById('emisor-nombre').value.trim();
-  const autoridadNombre = document.getElementById('autoridad-nombre').value.trim();
-  const validityDt = document.getElementById('validity-dt').value;
-
-  if (!ubicacion || !descripcion || !emisorNombre || !autoridadNombre) {
-    showToast('Completa los campos obligatorios: Ubicación, Descripción, Emisor y Autoridad.', 'error'); return;
+function buildWorkerRows() {
+  const num = parseInt(document.getElementById('sol-num-trabajadores').value) || 1;
+  const tbody = document.getElementById('workers-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  for(let i = 1; i <= num; i++) {
+    tbody.innerHTML += '<tr><td>'+i+'</td><td><input type="text" class="form-input" placeholder="Nombre"></td><td><input type="text" class="form-input" placeholder="12.345.678-9"></td><td><input type="text" class="form-input" placeholder="Operario"></td></tr>';
   }
-  if (!sigs['emisor']) { showToast('Se requiere la firma del Emisor de Permiso.', 'error'); return; }
-  if (!sigs['autoridad']) { showToast('Se requiere la firma de Aceptación de la Autoridad en Realización.', 'error'); return; }
+}
 
-  const btn = document.getElementById('submit-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Enviando...';
+function captureLocation() {
+  if(!navigator.geolocation) { showToast('Geolocalización no disponible','err'); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude.toFixed(4);
+    const lng = pos.coords.longitude.toFixed(4);
+    document.getElementById('sol-coords').value = lat + ', ' + lng;
+    document.getElementById('coords-text').textContent = 'Lat: '+lat+', Lng: '+lng;
+    document.getElementById('coord-display').style.display = 'block';
+    showToast('Ubicación capturada','ok');
+  }, err => showToast('Error al capturar ubicación: '+err.message,'err'));
+}
 
-  const workers = getWorkers();
-  const now = new Date();
+function enviarSolicitud() {
+  const sucursal = document.getElementById('sol-sucursal').value;
+  const ubicacion = document.getElementById('sol-ubicacion').value;
+  const descripcion = document.getElementById('sol-descripcion').value;
+  const nombre = document.getElementById('sol-nombre').value;
+  const email = document.getElementById('sol-email').value;
+  const coords = document.getElementById('sol-coords').value;
+
+  if(!sucursal || !ubicacion || !descripcion || !nombre || !email) { showToast('Completa los campos obligatorios','err'); return; }
+
+  const folio = 'PTS-ALT-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Math.floor(Math.random()*9000+1000);
   const permit = {
-    folio: currentFolio,
-    fechaSolicitud: now.toISOString(),
-    fechaStr: now.toLocaleString('es-CL'),
-    validez: validityDt ? new Date(validityDt).toLocaleString('es-CL') : '—',
-    ubicacion, descripcion,
-    predRiesgo: document.getElementById('pred-riesgo').value,
-    numPred: document.getElementById('num-pred').value,
-    infoAutoridad: document.getElementById('info-autoridad').value,
-    emisorNombre,
-    autoridadNombre,
-    autoridadCargo: document.getElementById('autoridad-cargo').value,
-    paramedico: document.getElementById('paramedico').value,
-    workers,
-    checkedPre: getCheckedCount('checklist-pre'),
-    checkedDur: getCheckedCount('checklist-dur'),
-    totalCampos: [ubicacion,descripcion,emisorNombre,autoridadNombre].filter(Boolean).length + workers.length,
-    medidasAdicionales: document.getElementById('medidas-adicionales').value,
-    precaucionesAdicionales: document.getElementById('precauciones-adicionales').value,
-    sigEmisor: document.getElementById('canvas-emisor').toDataURL(),
-    sigAutoridad: document.getElementById('canvas-autoridad').toDataURL(),
-    estado: 'pendiente',
-    historial: [{ accion: 'Creado', fecha: now.toLocaleString('es-CL'), usuario: emisorNombre }]
+    id: Math.random().toString(36).substr(2,9),
+    folio, sucursal, ubicacion, descripcion, nombre, email,
+    coords, emisor: currentUser.nombre, estado: 'pendiente',
+    fechaCreacion: new Date().toLocaleString('es-CL'),
+    validez: document.getElementById('sol-validez').value
   };
 
-  try {
-    const emailTo = config.email || 'branco.sp2311@gmail.com';
-    await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 500,
-        messages: [{
-          role: 'user',
-          content: `Generar confirmación de recepción de Permiso de Trabajo en Altura. Folio: ${permit.folio}, Ubicación: ${permit.ubicacion}, Emisor: ${permit.emisorNombre}, Autoridad: ${permit.autoridadNombre}, Trabajadores: ${permit.workers.length}, Fecha: ${permit.fechaStr}. Destino: ${emailTo}. Responder con un breve mensaje de confirmación en español indicando que el permiso fue recibido y está en revisión.`
-        }]
-      })
-    });
-  } catch(e) {}
+  app.permisos.unshift(permit);
+  saveData();
+  showToast('Permiso '+folio+' enviado correctamente','ok');
+  resetSolicitud();
 
-  permits.unshift(permit);
-  localStorage.setItem('pts_permits', JSON.stringify(permits));
-
-  btn.disabled = false;
-  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Enviar y Notificar';
-
-  showToast(`Permiso ${permit.folio} enviado correctamente. Notificación enviada a ${config.email || 'branco.sp2311@gmail.com'}`, 'success');
-  updateMetrics();
-  renderLog();
+  // Registrar notificación
+  app.notificaciones.push({
+    fecha: new Date().toLocaleString('es-CL'),
+    tipo: 'email',
+    destinatario: email,
+    asunto: 'Nuevo permiso de trabajo: '+folio,
+    estado: 'enviada'
+  });
+  saveData();
 }
 
-function resetForm() {
-  if (!confirm('¿Limpiar todo el formulario?')) return;
-  document.querySelectorAll('#view-solicitud input[type=text], #view-solicitud input[type=email], #view-solicitud textarea, #view-solicitud select, #view-solicitud input[type=datetime-local]').forEach(el => el.value = '');
-  document.querySelectorAll('#view-solicitud input[type=checkbox]').forEach(el => el.checked = false);
-  ['emisor','autoridad','cierre-emisor','cierre-autoridad'].forEach(clearSig);
-  document.getElementById('validity-display').textContent = '—';
-  updateProgress();
+function resetSolicitud() {
+  document.querySelectorAll('#view-solicitud .form-input, #view-solicitud .form-select').forEach(el => el.value = '');
+  buildWorkerRows();
 }
 
-function switchView(v) {
-  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById('view-' + v).classList.add('active');
-  event.target.classList.add('active');
-  if (v === 'admin') { loadConfig(); updateMetrics(); renderLog(); }
+function genPDF() {
+  const element = document.getElementById('view-solicitud');
+  const opt = { margin: 10, filename: 'permiso-'+new Date().getTime()+'.pdf', image: {type:'jpeg',quality:0.98}, html2canvas: {scale:2}, jsPDF: {orientation:'portrait',unit:'mm',format:'a4'}};
+  html2pdf().set(opt).from(element).save();
+  showToast('PDF generado','ok');
 }
 
-function loadConfig() {
-  document.getElementById('cfg-email').value = config.email || '';
-  document.getElementById('cfg-empresa').value = config.empresa || '';
-  document.getElementById('cfg-she').value = config.she || '';
+// TAREAS
+function renderTareas() {
+  const container = document.getElementById('tareas-container');
+  const misTareas = app.tareas.filter(t => t.asignado === currentUser.id);
+  if(!misTareas.length) { container.innerHTML = '<div style="text-align:center;color:var(--mu);padding:20px">No tienes tareas asignadas</div>'; return; }
+  container.innerHTML = misTareas.map(t => 
+    '<div class="task-item">' +
+    '<div class="task-content"><div class="task-title">'+t.titulo+'</div><div class="task-desc">'+t.descripcion+'</div><div class="task-meta">Vence: '+t.fecha+'</div></div>' +
+    '<div class="task-status '+t.estado+'">'+t.estado+'</div>' +
+    '</div>'
+  ).join('');
 }
 
-function saveConfig() {
-  config.email = document.getElementById('cfg-email').value.trim();
-  config.empresa = document.getElementById('cfg-empresa').value.trim();
-  config.she = document.getElementById('cfg-she').value.trim();
-  localStorage.setItem('pts_config', JSON.stringify(config));
-  showToast('Configuración guardada correctamente.', 'success');
+function openModalTarea() {
+  if(!currentUser || currentUser.rol !== 'admin' && currentUser.rol !== 'supervisor') { showToast('No tienes permisos','err'); return; }
+  const sel = document.getElementById('mod-tarea-asignado');
+  sel.innerHTML = app.usuarios.filter(u => u.activo).map(u => '<option value="'+u.id+'">'+u.nombre+'</option>').join('');
+  document.getElementById('modal-tarea').classList.add('open');
 }
 
-function updateMetrics() {
-  document.getElementById('m-total').textContent = permits.length;
-  document.getElementById('m-pending').textContent = permits.filter(p => p.estado === 'pendiente').length;
-  document.getElementById('m-approved').textContent = permits.filter(p => p.estado === 'aprobado').length;
-  document.getElementById('m-closed').textContent = permits.filter(p => p.estado === 'cerrado').length;
+function saveTarea() {
+  const tarea = {
+    id: Math.random().toString(36).substr(2,9),
+    titulo: document.getElementById('mod-tarea-titulo').value,
+    descripcion: document.getElementById('mod-tarea-desc').value,
+    asignado: document.getElementById('mod-tarea-asignado').value,
+    fecha: document.getElementById('mod-tarea-fecha').value,
+    prioridad: document.getElementById('mod-tarea-prioridad').value,
+    estado: 'asignada',
+    creador: currentUser.id,
+    fechaCreacion: new Date().toLocaleString('es-CL')
+  };
+  app.tareas.push(tarea);
+  saveData();
+  closeModal('tarea');
+  renderTareas();
+  showToast('Tarea creada','ok');
 }
 
-function renderLog() {
-  const filter = document.getElementById('filter-status').value;
-  const body = document.getElementById('log-body');
-  const data = filter ? permits.filter(p => p.estado === filter) : permits;
-  if (!data.length) { body.innerHTML = '<tr><td colspan="9" class="empty-state">No hay permisos que mostrar.</td></tr>'; return; }
-  body.innerHTML = data.map((p, i) => `
-    <tr>
-      <td><code style="font-size:10px;color:var(--primary)">${p.folio}</code></td>
-      <td style="font-size:11px;color:var(--muted)">${p.fechaStr}</td>
-      <td style="font-size:12px">${p.ubicacion}</td>
-      <td style="font-size:12px">${p.emisorNombre}</td>
-      <td style="font-size:12px">${p.autoridadNombre}</td>
-      <td style="text-align:center;font-family:var(--mono);font-size:12px">${p.workers.length}</td>
-      <td style="text-align:center">
-        <span style="font-size:10px;color:var(--muted)">Pre: ${p.checkedPre} · Dur: ${p.checkedDur}</span>
-      </td>
-      <td><span class="badge ${p.estado}">${p.estado}</span></td>
-      <td><button onclick="openDetail(${permits.indexOf(p)})" style="background:transparent;border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Ver</button></td>
-    </tr>
-  `).join('');
+// USUARIOS
+function renderUsuarios() {
+  const tbody = document.getElementById('usuarios-tbody');
+  if(!app.usuarios.length) { tbody.innerHTML = '<tr><td colspan="6">Sin usuarios</td></tr>'; return; }
+  tbody.innerHTML = app.usuarios.map(u => {
+    const suc = u.sucursal ? app.sucursales.find(s => s.id === u.sucursal) : null;
+    return '<tr>' +
+    '<td>'+u.username+'</td>' +
+    '<td>'+u.nombre+'</td>' +
+    '<td><span class="badge '+u.rol+'">'+u.rol+'</span></td>' +
+    '<td>'+(suc?.nombre||'Global')+'</td>' +
+    '<td><span style="color:var(--ok)">●</span> Activo</td>' +
+    '<td><button class="btn-secondary btn-small" onclick="editUsuario(\''+u.id+'\')">Editar</button></td>' +
+    '</tr>';
+  }).join('');
 }
 
-function openDetail(idx) {
-  const p = permits[idx];
-  const modal = document.getElementById('detail-modal');
-  document.getElementById('modal-title').textContent = 'Permiso ' + p.folio;
-  document.getElementById('modal-body').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="detail-field"><div class="lbl">Folio</div><div class="val" style="font-family:var(--mono)">${p.folio}</div></div>
-      <div class="detail-field"><div class="lbl">Fecha de solicitud</div><div class="val">${p.fechaStr}</div></div>
-      <div class="detail-field"><div class="lbl">Válido hasta</div><div class="val">${p.validez}</div></div>
-      <div class="detail-field"><div class="lbl">Estado</div><div class="val"><span class="badge ${p.estado}">${p.estado}</span></div></div>
-      <div class="detail-field"><div class="lbl">Ubicación</div><div class="val">${p.ubicacion}</div></div>
-      <div class="detail-field"><div class="lbl">Descripción</div><div class="val">${p.descripcion}</div></div>
-      <div class="detail-field"><div class="lbl">Emisor PTS</div><div class="val">${p.emisorNombre}</div></div>
-      <div class="detail-field"><div class="lbl">Autoridad en Realización</div><div class="val">${p.autoridadNombre}${p.autoridadCargo ? ' · '+p.autoridadCargo : ''}</div></div>
-      <div class="detail-field"><div class="lbl">Paramédico</div><div class="val">${p.paramedico || '—'}</div></div>
-      <div class="detail-field"><div class="lbl">Predicción de riesgo</div><div class="val">${p.predRiesgo || '—'} · Nº ${p.numPred || '—'}</div></div>
-    </div>
-    <div style="margin-top:12px"><div class="detail-field"><div class="lbl">Trabajadores (${p.workers.length})</div>
-    ${p.workers.length ? `<table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:4px">${p.workers.map(w=>`<tr><td style="padding:3px 6px;border-bottom:0.5px solid var(--border)">${w.name}</td><td style="color:var(--muted);padding:3px 6px;border-bottom:0.5px solid var(--border)">${w.rut}</td><td style="padding:3px 6px;border-bottom:0.5px solid var(--border);font-family:var(--mono)">${w.bp}</td><td style="padding:3px 6px;border-bottom:0.5px solid var(--border)">${w.apto}</td></tr>`).join('')}</table>` : '<span style="color:var(--muted)">Ninguno registrado</span>'}
-    </div></div>
-    <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div><div class="lbl" style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:4px">Firma Emisor</div><img src="${p.sigEmisor}" style="width:100%;border:1px solid var(--border);border-radius:4px;height:60px;object-fit:contain;background:#fafafa"></div>
-      <div><div class="lbl" style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:4px">Firma Autoridad (Aceptación)</div><img src="${p.sigAutoridad}" style="width:100%;border:1px solid var(--border);border-radius:4px;height:60px;object-fit:contain;background:#fafafa"></div>
-    </div>
-    ${p.historial ? `<div style="margin-top:12px"><div class="lbl" style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:4px">Historial</div>${p.historial.map(h=>`<div style="font-size:11px;padding:3px 0;color:var(--muted)">${h.fecha} — <strong>${h.accion}</strong>${h.usuario?' por '+h.usuario:''}</div>`).join('')}</div>` : ''}
-  `;
-
-  const actions = document.getElementById('modal-actions');
-  actions.innerHTML = '';
-  if (p.estado === 'pendiente') {
-    actions.innerHTML = `
-      <button class="action-btn approve" onclick="changeStatus(${idx},'aprobado')">Aprobar</button>
-      <button class="action-btn reject" onclick="changeStatus(${idx},'rechazado')">Rechazar</button>
-    `;
-  }
-  if (p.estado === 'aprobado') {
-    actions.innerHTML = `<button class="action-btn close-permit" onclick="changeStatus(${idx},'cerrado')">Cerrar Permiso</button>`;
-  }
-  modal.classList.add('open');
+function openModalUsuario() {
+  if(currentUser.rol !== 'admin') { showToast('No tienes permisos','err'); return; }
+  const sel = document.getElementById('mod-user-sucursal');
+  sel.innerHTML = '<option value="">Global</option>' + app.sucursales.map(s => '<option value="'+s.id+'">'+s.nombre+'</option>').join('');
+  document.getElementById('modal-usuario').classList.add('open');
 }
 
-function changeStatus(idx, newStatus) {
-  permits[idx].estado = newStatus;
-  permits[idx].historial = permits[idx].historial || [];
-  permits[idx].historial.push({ accion: newStatus.charAt(0).toUpperCase()+newStatus.slice(1), fecha: new Date().toLocaleString('es-CL') });
-  localStorage.setItem('pts_permits', JSON.stringify(permits));
-  closeModal();
-  updateMetrics();
-  renderLog();
-  showToast('Estado actualizado a: ' + newStatus, 'success');
+function saveUsuario() {
+  const newUser = {
+    id: Math.random().toString(36).substr(2,9),
+    username: document.getElementById('mod-user-username').value,
+    pass: document.getElementById('mod-user-pass').value,
+    nombre: document.getElementById('mod-user-nombre').value,
+    email: document.getElementById('mod-user-email').value,
+    rol: document.getElementById('mod-user-rol').value,
+    sucursal: document.getElementById('mod-user-sucursal').value || null,
+    activo: true
+  };
+  if(!newUser.username || !newUser.pass || !newUser.nombre) { showToast('Completa los campos requeridos','err'); return; }
+  app.usuarios.push(newUser);
+  saveData();
+  closeModal('usuario');
+  renderUsuarios();
+  showToast('Usuario creado','ok');
 }
 
-function closeModal() { document.getElementById('detail-modal').classList.remove('open'); }
+// SUCURSALES
+function renderSucursales() {
+  const tbody = document.getElementById('sucursales-tbody');
+  if(!app.sucursales.length) { tbody.innerHTML = '<tr><td colspan="5">Sin sucursales</td></tr>'; return; }
+  tbody.innerHTML = app.sucursales.map(s => '<tr>' +
+    '<td>'+s.nombre+'</td>' +
+    '<td>'+s.ubicacion+'</td>' +
+    '<td><code style="font-size:9px">'+s.lat.toFixed(4)+', '+s.lng.toFixed(4)+'</code></td>' +
+    '<td>'+s.resp+'</td>' +
+    '<td><button class="btn-secondary btn-small" onclick="editSucursal(\''+s.id+'\')">Editar</button></td>' +
+    '</tr>').join('');
+}
+
+function openModalSucursal() {
+  if(currentUser.rol !== 'admin') { showToast('No tienes permisos','err'); return; }
+  document.getElementById('modal-sucursal').classList.add('open');
+}
+
+function saveSucursal() {
+  const coords = document.getElementById('mod-sucursal-coords').value.split(',');
+  const newSuc = {
+    id: Math.random().toString(36).substr(2,9),
+    nombre: document.getElementById('mod-sucursal-nombre').value,
+    ubicacion: document.getElementById('mod-sucursal-ubicacion').value,
+    lat: parseFloat(coords[0]) || 0,
+    lng: parseFloat(coords[1]) || 0,
+    resp: document.getElementById('mod-sucursal-resp').value,
+    tel: document.getElementById('mod-sucursal-tel').value
+  };
+  if(!newSuc.nombre) { showToast('Nombre de sucursal requerido','err'); return; }
+  app.sucursales.push(newSuc);
+  saveData();
+  closeModal('sucursal');
+  renderSucursales();
+  renderSucursalFilters();
+  showToast('Sucursal creada','ok');
+}
+
+// NOTIFICACIONES
+function guardarNotificaciones() {
+  app.integraciones.notificaciones = {
+    email: document.getElementById('notif-email').checked,
+    emailAddr: document.getElementById('notif-email-addr').value,
+    sms: document.getElementById('notif-sms').checked,
+    smsNumber: document.getElementById('notif-sms-number').value,
+    smsToken: document.getElementById('notif-sms-token').value,
+    whatsapp: document.getElementById('notif-whatsapp').checked,
+    whatsappNumber: document.getElementById('notif-whatsapp-number').value,
+    whatsappToken: document.getElementById('notif-whatsapp-token').value
+  };
+  saveData();
+  showToast('Notificaciones configuradas','ok');
+}
+
+function renderHistorialNotificaciones() {
+  const tbody = document.getElementById('notif-historial-tbody');
+  if(!app.notificaciones.length) { tbody.innerHTML = '<tr><td colspan="5">Sin registro</td></tr>'; return; }
+  tbody.innerHTML = app.notificaciones.slice(0,10).map(n => '<tr>' +
+    '<td>'+n.fecha+'</td>' +
+    '<td>'+n.tipo.toUpperCase()+'</td>' +
+    '<td>'+n.destinatario+'</td>' +
+    '<td>'+n.asunto+'</td>' +
+    '<td><span style="color:var(--ok)">●</span> '+n.estado+'</td>' +
+    '</tr>').join('');
+}
+
+// INTEGRACIONES
+function guardarIntegraciones() {
+  app.integraciones = {
+    webhooks: {
+      custom: document.getElementById('integ-webhook').value,
+      zapier: document.getElementById('integ-zapier').value,
+      powerautomate: document.getElementById('integ-powerautomate').value
+    },
+    storage: {
+      drive: document.getElementById('storage-drive').checked,
+      onedrive: document.getElementById('storage-onedrive').checked,
+      dropbox: document.getElementById('storage-dropbox').checked
+    },
+    database: {
+      postgres: document.getElementById('db-postgres').value,
+      airtable: document.getElementById('db-airtable').value,
+      firebase: document.getElementById('db-firebase').value,
+      mysql: document.getElementById('db-mysql').value
+    },
+    productivity: {
+      asana: document.getElementById('prod-asana').checked,
+      trello: document.getElementById('prod-trello').checked,
+      gcal: document.getElementById('prod-gcal').checked
+    },
+    analytics: {
+      sheets: document.getElementById('analytics-sheets').checked,
+      datastudio: document.getElementById('analytics-datastudio').checked,
+      powerbi: document.getElementById('analytics-powerbi').checked
+    }
+  };
+  saveData();
+  showToast('Integraciones guardadas','ok');
+}
+
+// HELPERS
+function closeModal(name) {
+  document.getElementById('modal-'+name).classList.remove('open');
+}
 
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = 'toast show ' + (type || '');
-  setTimeout(() => t.classList.remove('show'), 4500);
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 4000);
 }
 
-loadConfig();
-updateMetrics();
-
-document.getElementById('validity-dt').addEventListener('change', updateProgress);
-['ubicacion','descripcion','emisor-nombre','autoridad-nombre'].forEach(id => {
-  document.getElementById(id).addEventListener('input', updateProgress);
-});
+// INIT
+loadData();
 </script>
+</body>
+</html>
